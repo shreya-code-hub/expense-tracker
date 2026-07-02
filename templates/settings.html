@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ t('settings') }} - Expense Tracker{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="mb-1 text-primary-custom">{{ t('settings') }}</h2>
+        <p class="text-secondary mb-0">Configure your account preferences, personalization settings, and alerts</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Left Column: Navigation Tabs & Profile Pic Card -->
+    <div class="col-lg-4">
+        <!-- Profile Picture Card -->
+        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4" style="background-color: var(--bg-secondary); border: 1px solid var(--border-color) !important;">
+            <div class="text-center">
+                <div class="position-relative d-inline-block mb-3">
+                    {% if current_user.profile_pic %}
+                        <img src="{{ url_for('static', filename='profile_pics/' + current_user.profile_pic) }}" class="rounded-circle border border-3 border-primary shadow" style="width: 120px; height: 120px; object-fit: cover;" alt="Avatar">
+                    {% else %}
+                        <div class="rounded-circle border border-3 border-primary shadow d-flex align-items-center justify-content-center bg-primary-subtle text-primary" style="width: 120px; height: 120px; font-size: 3rem; font-family: 'Outfit';">
+                            {{ current_user.username[0]|upper }}
+                        </div>
+                    {% endif %}
+                </div>
+                <h5 class="mb-1 fw-bold">{{ current_user.username }}</h5>
+                <p class="text-secondary small mb-3">{{ current_user.email }}</p>
+                
+                <!-- Upload Profile Pic Form -->
+                <form method="POST" action="{{ url_for('settings') }}" enctype="multipart/form-data">
+                    <!-- Invisible parameters to avoid setting reset on single uploads -->
+                    <input type="hidden" name="username" value="{{ current_user.username }}">
+                    <input type="hidden" name="email" value="{{ current_user.email }}">
+                    <input type="hidden" name="currency" value="{{ current_user.currency }}">
+                    <input type="hidden" name="language" value="{{ current_user.language }}">
+                    <input type="hidden" name="theme_accent" value="{{ current_user.theme_accent }}">
+                    {% if current_user.daily_reminder %}<input type="hidden" name="daily_reminder" value="1">{% endif %}
+                    {% if current_user.weekly_summary %}<input type="hidden" name="weekly_summary" value="1">{% endif %}
+                    {% if current_user.savings_milestones %}<input type="hidden" name="savings_milestones" value="1">{% endif %}
+                    <input type="hidden" name="budget_warning_threshold" value="{{ current_user.budget_warning_threshold }}">
+
+                    <div class="mb-2">
+                        <label for="profilePicInput" class="btn btn-outline-custom w-100 btn-sm">
+                            <i class="bi bi-camera me-1"></i> Change Picture
+                        </label>
+                        <input type="file" id="profilePicInput" name="profile_pic" class="d-none" onchange="this.form.submit()">
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Custom Categories Settings Card -->
+        <div class="card border-0 shadow-sm rounded-4 p-4" style="background-color: var(--bg-secondary); border: 1px solid var(--border-color) !important;">
+            <h5 class="mb-3 text-secondary"><i class="bi bi-tags text-primary me-2"></i>Expense Categories</h5>
+            
+            <!-- Default list -->
+            <label class="form-label text-secondary small">Default Categories</label>
+            <div class="d-flex flex-wrap gap-1.5 mb-4">
+                <span class="badge bg-light text-dark border px-2 py-1.5 rounded-3">Food</span>
+                <span class="badge bg-light text-dark border px-2 py-1.5 rounded-3">Travel</span>
+                <span class="badge bg-light text-dark border px-2 py-1.5 rounded-3">Shopping</span>
+                <span class="badge bg-light text-dark border px-2 py-1.5 rounded-3">Bills</span>
+                <span class="badge bg-light text-dark border px-2 py-1.5 rounded-3">Entertainment</span>
+                <span class="badge bg-light text-dark border px-2 py-1.5 rounded-3">Other</span>
+            </div>
+
+            <!-- Custom Category editor list -->
+            <label class="form-label text-secondary small">Your Custom Categories</label>
+            <ul class="list-group list-group-flush mb-4 rounded-3 border">
+                {% if current_user.custom_categories %}
+                    {% for cat in current_user.custom_categories %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-2 bg-transparent text-primary-custom" style="border-color: var(--border-color);">
+                        <span>{{ cat.name }}</span>
+                        <form method="POST" action="{{ url_for('delete_custom_category', id=cat.id) }}" class="d-inline">
+                            <button type="submit" class="btn btn-link text-danger p-0 border-0" title="Delete">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </li>
+                    {% endfor %}
+                {% else %}
+                    <li class="list-group-item text-center text-muted small py-3 bg-transparent" style="border-color: var(--border-color);">
+                        No custom categories added yet
+                    </li>
+                {% endif %}
+            </ul>
+
+            <!-- Add Category Form -->
+            <form method="POST" action="{{ url_for('add_custom_category') }}">
+                <div class="input-group">
+                    <input type="text" name="name" class="form-control form-control-custom" placeholder="New Category Name" required>
+                    <button type="submit" class="btn btn-primary-custom">Add</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Right Column: Preferences Settings Form -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm rounded-4 p-4" style="background-color: var(--bg-secondary); border: 1px solid var(--border-color) !important;">
+            <h5 class="mb-4 text-secondary"><i class="bi bi-sliders text-primary me-2"></i>Preferences & Preferences Configurations</h5>
+            
+            <form method="POST" action="{{ url_for('settings') }}" class="needs-validation">
+                <!-- Section 1: Basic Info -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label for="username" class="form-label text-secondary">Username</label>
+                        <input type="text" class="form-control form-control-custom" id="username" name="username" value="{{ current_user.username }}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="email" class="form-label text-secondary">Email Address</label>
+                        <input type="email" class="form-control form-control-custom" id="email" name="email" value="{{ current_user.email }}" required>
+                    </div>
+                </div>
+
+                <hr class="my-4" style="border-color: var(--border-color);">
+
+                <!-- Section 2: Customization (Currency, Language, Accent) -->
+                <h6 class="fw-bold mb-3">Customization & UI Aesthetics</h6>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <label for="currency" class="form-label text-secondary">Currency</label>
+                        <select class="form-select form-control-custom" id="currency" name="currency">
+                            <option value="₹" {% if current_user.currency == '₹' %}selected{% endif %}>Rupee (₹)</option>
+                            <option value="$" {% if current_user.currency == '$' %}selected{% endif %}>Dollar ($)</option>
+                            <option value="€" {% if current_user.currency == '€' %}selected{% endif %}>Euro (€)</option>
+                            <option value="£" {% if current_user.currency == '£' %}selected{% endif %}>Pound (£)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label for="language" class="form-label text-secondary">Language</label>
+                        <select class="form-select form-control-custom" id="language" name="language">
+                            <option value="en" {% if current_user.language == 'en' %}selected{% endif %}>English</option>
+                            <option value="es" {% if current_user.language == 'es' %}selected{% endif %}>Español</option>
+                            <option value="hi" {% if current_user.language == 'hi' %}selected{% endif %}>हिन्दी</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label for="theme_accent" class="form-label text-secondary">Theme Accent Color</label>
+                        <select class="form-select form-control-custom" id="theme_accent" name="theme_accent">
+                            <option value="indigo" {% if current_user.theme_accent == 'indigo' %}selected{% endif %}>Royal Indigo</option>
+                            <option value="emerald" {% if current_user.theme_accent == 'emerald' %}selected{% endif %}>Emerald Green</option>
+                            <option value="rose" {% if current_user.theme_accent == 'rose' %}selected{% endif %}>Rose Pink</option>
+                            <option value="amber" {% if current_user.theme_accent == 'amber' %}selected{% endif %}>Amber Yellow</option>
+                            <option value="blue" {% if current_user.theme_accent == 'blue' %}selected{% endif %}>Ocean Blue</option>
+                        </select>
+                    </div>
+                </div>
+
+                <hr class="my-4" style="border-color: var(--border-color);">
+
+                <!-- Section 3: Notification Alerts & Triggers -->
+                <h6 class="fw-bold mb-3">Notification Alerts & Frequency</h6>
+                <div class="row g-3 mb-4">
+                    <div class="col-12">
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" role="switch" id="daily_reminder" name="daily_reminder" {% if current_user.daily_reminder %}checked{% endif %}>
+                            <label class="form-check-label text-primary-custom" for="daily_reminder">
+                                <strong>Daily Expense Reminder</strong>
+                                <span class="d-block text-secondary small">Notify me if I haven't added any transaction updates by the end of today</span>
+                            </label>
+                        </div>
+                        
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" role="switch" id="weekly_summary" name="weekly_summary" {% if current_user.weekly_summary %}checked{% endif %}>
+                            <label class="form-check-label text-primary-custom" for="weekly_summary">
+                                <strong>Weekly Spending Summary</strong>
+                                <span class="d-block text-secondary small">Show a summary report notifications of my weekly spend dynamics in the app</span>
+                            </label>
+                        </div>
+
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" role="switch" id="savings_milestones" name="savings_milestones" {% if current_user.savings_milestones %}checked{% endif %}>
+                            <label class="form-check-label text-primary-custom" for="savings_milestones">
+                                <strong>Savings Milestone Alerts</strong>
+                                <span class="d-block text-secondary small">Notify me when my accumulated savings balance crosses milestones (e.g. 10,000, 50,000, etc.)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="col-md-8">
+                        <label for="budget_warning_threshold" class="form-label text-secondary">
+                            Budget Warning Threshold: <strong id="threshold-val">{{ current_user.budget_warning_threshold|int }}%</strong>
+                        </label>
+                        <input type="range" class="form-range" min="50" max="100" step="5" id="budget_warning_threshold" name="budget_warning_threshold" value="{{ current_user.budget_warning_threshold|int }}" oninput="document.getElementById('threshold-val').innerText = this.value + '%'">
+                        <span class="text-secondary small d-block mt-1">Receive warning notifications when any category budget spending exceeds this percentage.</span>
+                    </div>
+                </div>
+
+                <hr class="my-4" style="border-color: var(--border-color);">
+
+                <!-- Section 4: Security Reset -->
+                <h6 class="fw-bold mb-3">Change Security Password</h6>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label for="current_password" class="form-label text-secondary">Current Password</label>
+                        <input type="password" class="form-control form-control-custom" id="current_password" name="current_password" placeholder="Leave empty to keep current password">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="new_password" class="form-label text-secondary">New Password</label>
+                        <input type="password" class="form-control form-control-custom" id="new_password" name="new_password" placeholder="Enter new strong password">
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" class="btn btn-primary-custom py-3 px-5 mt-3">
+                    <i class="bi bi-check-circle-fill me-1"></i> Save Configurations
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+
+{% block title %}Financial Reports - Expense Tracker{% endblock %}
+
+{% block content %}
+<div class="row align-items-center mb-4">
+    <div class="col-md-6">
+        <h2 class="mb-1 text-primary-custom">Financial Reports</h2>
+        <p class="text-secondary mb-0">Generate monthly summaries and export transaction data</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Left column: Export Tools -->
+    <div class="col-lg-5">
+        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4" style="background-color: var(--bg-secondary); border: 1px solid var(--border-color) !important;">
+            <h5 class="mb-3 text-secondary"><i class="bi bi-download text-primary me-2"></i>Export Options</h5>
+            
+            <form method="GET" action="{{ url_for('export_report') }}" class="needs-validation">
+                <!-- Select Month -->
+                <div class="mb-3">
+                    <label for="report_month" class="form-label text-secondary">Select Month</label>
+                    <input type="month" class="form-control form-control-custom" id="report_month" name="month" value="{{ selected_month }}" required>
+                </div>
+                
+                <!-- Format Choice -->
+                <div class="mb-4">
+                    <label class="form-label text-secondary">Export Format</label>
+                    <div class="row g-2">
+                        <div class="col-4">
+                            <input type="radio" class="btn-check" name="format" id="format_pdf" value="pdf" checked>
+                            <label class="btn btn-outline-custom w-100 py-3 d-flex flex-column align-items-center justify-content-center gap-1" for="format_pdf">
+                                <i class="bi bi-file-earmark-pdf-fill text-danger fs-3"></i>
+                                <span class="fw-semibold" style="font-size: 0.8rem;">PDF</span>
+                            </label>
+                        </div>
+                        <div class="col-4">
+                            <input type="radio" class="btn-check" name="format" id="format_csv" value="csv">
+                            <label class="btn btn-outline-custom w-100 py-3 d-flex flex-column align-items-center justify-content-center gap-1" for="format_csv">
+                                <i class="bi bi-file-earmark-spreadsheet-fill text-success fs-3"></i>
+                                <span class="fw-semibold" style="font-size: 0.8rem;">CSV</span>
+                            </label>
+                        </div>
+                        <div class="col-4">
+                            <input type="radio" class="btn-check" name="format" id="format_pptx" value="pptx">
+                            <label class="btn btn-outline-custom w-100 py-3 d-flex flex-column align-items-center justify-content-center gap-1" for="format_pptx">
+                                <i class="bi bi-file-earmark-slides-fill text-warning fs-3"></i>
+                                <span class="fw-semibold" style="font-size: 0.8rem;">PowerPoint</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary-custom w-100 py-3">
+                    <i class="bi bi-cloud-arrow-down me-1"></i> Generate & Download
+                </button>
+            </form>
+        </div>
+
+        <!-- Analytical Info Card -->
+        <div class="card border-0 shadow-sm rounded-4 p-4 text-white" style="background: var(--primary-gradient);">
+            <div class="d-flex align-items-center gap-3">
+                <i class="bi bi-info-circle-fill fs-2"></i>
+                <div>
+                    <h6 class="fw-bold mb-1">Did you know?</h6>
+                    <p class="mb-0 text-white-50" style="font-size: 0.85rem; line-height: 1.4;">
+                        Exporting to PDF creates a beautifully formatted business document including summary details, categorized spending structures, and receipt audits. CSV format is perfect for integrating with external spreadsheets like Excel or Google Sheets.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right column: Spending & Budget Audit Table -->
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm rounded-4 p-4" style="background-color: var(--bg-secondary); border: 1px solid var(--border-color) !important;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0 text-secondary"><i class="bi bi-clipboard-data text-primary me-2"></i>Category Breakdown ({{ selected_month_name }})</h5>
+                <form id="month-change-form" method="GET" class="d-inline-block">
+                    <input type="month" name="view_month" class="form-control form-control-sm form-control-custom" value="{{ selected_month }}" onchange="this.form.submit()">
+                </form>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-custom align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th class="text-end">Spent</th>
+                            <th class="text-end">Budget</th>
+                            <th class="text-end">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if category_analysis %}
+                            {% for item in category_analysis %}
+                            <tr>
+                                <td>
+                                    <span class="fw-semibold text-primary">{{ item.category|capitalize }}</span>
+                                </td>
+                                <td class="text-end fw-bold text-danger">
+                                    {{ current_user.currency or '₹' }}{{ "%.2f"|format(item.spent) }}
+                                </td>
+                                <td class="text-end text-secondary">
+                                    {% if item.budget > 0 %}
+                                        {{ current_user.currency or '₹' }}{{ "%.2f"|format(item.budget) }}
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    {% if item.budget > 0 %}
+                                        {% if item.spent > item.budget %}
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1" style="font-size: 0.75rem;">
+                                                <i class="bi bi-arrow-up-circle-fill me-0.5"></i> Over Limit
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size: 0.75rem;">
+                                                <i class="bi bi-check-circle-fill me-0.5"></i> Safe
+                                            </span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="text-muted" style="font-size: 0.8rem;">No Limit Set</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center text-secondary py-5">
+                                    <i class="bi bi-inbox fs-2 mb-2 d-block"></i>
+                                    No spending recorded in {{ selected_month_name }}.
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const form = document.querySelector('form[action="{{ url_for('export_report') }}"]');
+        if (form) {
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalContent = submitBtn.innerHTML;
+            
+            form.addEventListener('submit', () => {
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Downloading...';
+                submitBtn.disabled = true;
+                
+                setTimeout(() => {
+                    submitBtn.innerHTML = originalContent;
+                    submitBtn.disabled = false;
+                }, 3000);
+            });
+        }
+    });
+</script>
+{% endblock %}
