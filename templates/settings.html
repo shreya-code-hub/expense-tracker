@@ -40,6 +40,7 @@
                     {% if current_user.weekly_summary %}<input type="hidden" name="weekly_summary" value="1">{% endif %}
                     {% if current_user.savings_milestones %}<input type="hidden" name="savings_milestones" value="1">{% endif %}
                     <input type="hidden" name="budget_warning_threshold" value="{{ current_user.budget_warning_threshold }}">
+                    <input type="hidden" name="gemini_api_key" value="{{ current_user.gemini_api_key or '' }}">
 
                     <div class="mb-2">
                         <label for="profilePicInput" class="btn btn-outline-custom w-100 btn-sm">
@@ -203,6 +204,18 @@
                     <div class="col-md-6">
                         <label for="new_password" class="form-label text-secondary">New Password</label>
                         <input type="password" class="form-control form-control-custom" id="new_password" name="new_password" placeholder="Enter new strong password">
+                    </div>
+                </div>
+
+                <hr class="my-4" style="border-color: var(--border-color);">
+
+                <!-- Section 5: AI & Integrations -->
+                <h6 class="fw-bold mb-3">AI Services & Key Integrations</h6>
+                <div class="row g-3 mb-4">
+                    <div class="col-12">
+                        <label for="gemini_api_key" class="form-label text-secondary">Google Gemini API Key</label>
+                        <input type="password" class="form-control form-control-custom" id="gemini_api_key" name="gemini_api_key" value="{{ current_user.gemini_api_key or '' }}" placeholder="Enter your Google Gemini API Key">
+                        <span class="text-secondary small d-block mt-1">Unlock advanced multimodal receipt uploads analysis and direct chatbot integrations. Get a free key from Google AI Studio.</span>
                     </div>
                 </div>
 

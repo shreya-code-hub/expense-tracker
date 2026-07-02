@@ -23,7 +23,8 @@ def init_db():
             ("daily_reminder", "BOOLEAN NOT NULL DEFAULT 1"),
             ("weekly_summary", "BOOLEAN NOT NULL DEFAULT 1"),
             ("budget_warning_threshold", "FLOAT NOT NULL DEFAULT 90.0"),
-            ("savings_milestones", "BOOLEAN NOT NULL DEFAULT 1")
+            ("savings_milestones", "BOOLEAN NOT NULL DEFAULT 1"),
+            ("gemini_api_key", "TEXT NULL")
         ]
         
         for col_name, col_type in new_cols:

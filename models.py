@@ -21,6 +21,7 @@ class User(UserMixin, db.Model):
     weekly_summary = db.Column(db.Boolean, nullable=False, default=True)
     budget_warning_threshold = db.Column(db.Float, nullable=False, default=90.0)
     savings_milestones = db.Column(db.Boolean, nullable=False, default=True)
+    gemini_api_key = db.Column(db.String(255), nullable=True)
     
     # Relationships
     transactions = db.relationship('Transaction', backref='user', lazy=True, cascade="all, delete-orphan")

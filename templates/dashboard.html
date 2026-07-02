@@ -213,6 +213,19 @@
         </div>
     </div>
 
+    <!-- AI Cumulative Spending Forecast Chart -->
+    <div class="col-lg-4 col-md-6">
+        <div class="chart-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">🔮 AI Expense Forecast</h5>
+                <span class="badge bg-primary-subtle text-primary border" style="font-size: 0.72rem;"><i class="bi bi-magic me-1"></i>Predictive AI</span>
+            </div>
+            <div style="height: 280px; position: relative;">
+                <canvas id="aiForecastChart"></canvas>
+            </div>
+        </div>
+    </div>
+
     <!-- Upcoming Bills -->
     <div class="col-lg-4 col-md-12">
         <div class="chart-card d-flex flex-column justify-content-between">
@@ -399,8 +412,18 @@
                     </div>
                     
                     <div class="mb-3">
-                        <label for="receipt" class="form-label text-secondary">Receipt Image (Optional)</label>
+                        <label for="receipt" class="form-label text-secondary d-flex justify-content-between align-items-center w-100">
+                            <span>Receipt Image (Optional)</span>
+                            {% if current_user.gemini_api_key %}
+                            <button type="button" class="btn btn-link p-0 text-decoration-none btn-sm fw-semibold text-primary-custom" id="btn-scan-receipt-modal" style="font-size: 0.82rem;">
+                                <i class="bi bi-cpu me-1"></i>Scan with AI
+                            </button>
+                            {% else %}
+                            <span class="text-secondary" style="font-size: 0.75rem;"><i class="bi-info-circle me-1"></i>Configure key in Settings to scan</span>
+                            {% endif %}
+                        </label>
                         <input type="file" class="form-control form-control-custom" id="receipt" name="receipt" accept="image/*">
+                        <div id="ai-scan-status-modal" class="form-text text-secondary small d-none mt-2"><span class="spinner-border spinner-border-sm me-1" role="status"></span> AI is analyzing receipt layout...</div>
                     </div>
                 </div>
                 <div class="modal-footer border-top border-secondary-subtle">

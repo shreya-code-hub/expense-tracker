@@ -74,8 +74,18 @@
 
                 <!-- Receipt Image Upload -->
                 <div class="mb-4">
-                    <label for="receipt" class="form-label text-secondary">Receipt Attachment (Optional)</label>
+                    <label for="receipt" class="form-label text-secondary d-flex justify-content-between align-items-center w-100">
+                        <span>Receipt Attachment (Optional)</span>
+                        {% if current_user.gemini_api_key %}
+                        <button type="button" class="btn btn-link p-0 text-decoration-none btn-sm fw-semibold text-primary-custom" id="btn-scan-receipt-page" style="font-size: 0.82rem;">
+                            <i class="bi bi-cpu me-1"></i>Scan with AI
+                        </button>
+                        {% else %}
+                        <span class="text-secondary" style="font-size: 0.75rem;"><i class="bi-info-circle me-1"></i>Configure key in Settings to scan</span>
+                        {% endif %}
+                    </label>
                     <input type="file" class="form-control form-control-custom" id="receipt" name="receipt" accept="image/*">
+                    <div id="ai-scan-status-page" class="form-text text-secondary small d-none mt-2"><span class="spinner-border spinner-border-sm me-1" role="status"></span> AI is analyzing receipt data...</div>
                     <p class="text-secondary mt-1 mb-0" style="font-size: 0.8rem;">Supported formats: JPG, PNG, WEBP. Max size: 5MB.</p>
                     
                     {% if transaction and transaction.receipt_image %}

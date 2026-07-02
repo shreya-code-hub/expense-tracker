@@ -37,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const chartsDataEl = document.getElementById('charts-data');
     let categoryChart = null;
     let monthlyChart = null;
+    let forecastChart = null;
 
     function getChartThemeColors(isDark) {
         return {
@@ -174,6 +175,76 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }
+
+        // --- AI Cumulative Spending Forecast Chart ---
+        const forecastCtx = document.getElementById('aiForecastChart');
+        if (forecastCtx) {
+            fetch('/api/forecast')
+                .then(r => r.json())
+                .then(data => {
+                    forecastChart = new Chart(forecastCtx, {
+                        type: 'line',
+                        data: {
+                            labels: data.forecast_days,
+                            datasets: [
+                                {
+                                    label: 'Actual Cumulative',
+                                    data: data.actual_values,
+                                    borderColor: '#10b981',
+                                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                    fill: true,
+                                    tension: 0.2,
+                                    borderWidth: 3
+                                },
+                                {
+                                    label: 'AI Forecasted Trend',
+                                    data: data.forecast_values,
+                                    borderColor: '#6366f1',
+                                    borderDash: [5, 5],
+                                    fill: false,
+                                    tension: 0.1,
+                                    borderWidth: 2
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: {
+                                        color: colors.text,
+                                        font: { family: 'Inter', size: 11 }
+                                    }
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            return ` Cumulative: ₹${context.raw.toFixed(2)}`;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    grid: { display: false },
+                                    ticks: { color: colors.text, font: { family: 'Inter' } }
+                                },
+                                y: {
+                                    grid: { color: colors.grid },
+                                    ticks: {
+                                        color: colors.text,
+                                        font: { family: 'Inter' },
+                                        callback: function(v) { return '₹' + v; }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                })
+                .catch(e => console.error("Error loading AI forecast data:", e));
+        }
     }
 
     function updateChartThemes(isDark) {
@@ -190,6 +261,14 @@ document.addEventListener('DOMContentLoaded', () => {
             monthlyChart.options.scales.y.ticks.color = colors.text;
             monthlyChart.options.scales.y.grid.color = colors.grid;
             monthlyChart.update();
+        }
+
+        if (forecastChart) {
+            forecastChart.options.plugins.legend.labels.color = colors.text;
+            forecastChart.options.scales.x.ticks.color = colors.text;
+            forecastChart.options.scales.y.ticks.color = colors.text;
+            forecastChart.options.scales.y.grid.color = colors.grid;
+            forecastChart.update();
         }
     }
 
@@ -399,6 +478,194 @@ document.addEventListener('DOMContentLoaded', () => {
         
         animate();
     }
+
+    // ----------------------------
+    // 6. Expenso Chatbot Logic
+    // ----------------------------
+    const chatToggle = document.getElementById('expensoChatToggle');
+    const chatWindow = document.getElementById('expensoChatWindow');
+    const chatClose = document.getElementById('expensoChatClose');
+    const chatReset = document.getElementById('expensoChatReset');
+    const chatForm = document.getElementById('expensoChatForm');
+    const chatInput = document.getElementById('expensoChatInput');
+    const chatBody = document.getElementById('expensoChatBody');
+
+    if (chatToggle && chatWindow) {
+        // Toggle Chat Window
+        chatToggle.addEventListener('click', () => {
+            chatWindow.classList.toggle('open');
+            const pulse = chatToggle.querySelector('.pulse-ring');
+            if (pulse) pulse.remove();
+            
+            setTimeout(() => {
+                chatBody.scrollTop = chatBody.scrollHeight;
+            }, 100);
+        });
+
+        // Close Chat Window
+        if (chatClose) {
+            chatClose.addEventListener('click', () => {
+                chatWindow.classList.remove('open');
+            });
+        }
+
+        // Reset Chat Messages
+        if (chatReset) {
+            chatReset.addEventListener('click', () => {
+                chatBody.innerHTML = `
+                    <div class="chat-message incoming">
+                        <div class="message-bubble">
+                            ¡Hola! I am <b>Expenso</b>, your personal AI financial assistant. 🌟<br><br>I can query your real-time data! Try asking me:<br>• <i>"What is my balance?"</i><br>• <i>"How much did I spend on Food?"</i><br>• <i>"Show my budgets"</i><br>• <i>"Give me financial tips"</i>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // Form Submit
+        if (chatForm && chatInput) {
+            chatForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const text = chatInput.value.trim();
+                if (!text) return;
+
+                // Add Outgoing Message Bubble
+                appendMessage(text, 'outgoing');
+                chatInput.value = '';
+
+                // Add typing indicator bubble
+                const typingBubble = appendMessage('<span class="spinner-grow spinner-grow-sm text-secondary" role="status"></span> Analyzing...', 'incoming typing');
+
+                // POST request to /api/chat
+                fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message: text })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network error');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    typingBubble.remove();
+                    appendMessage(data.response, 'incoming');
+                })
+                .catch(err => {
+                    typingBubble.remove();
+                    appendMessage('⚠️ Connection lost. Please make sure the Flask server is running and you are logged in.', 'incoming');
+                });
+            });
+        }
+
+        // Helper to append bubble and auto-scroll
+        function appendMessage(htmlContent, senderClass) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `chat-message ${senderClass}`;
+            msgDiv.innerHTML = `<div class="message-bubble">${htmlContent}</div>`;
+            chatBody.appendChild(msgDiv);
+            
+            chatBody.scrollTo({
+                top: chatBody.scrollHeight,
+                behavior: 'smooth'
+            });
+            return msgDiv;
+        }
+    }
+
+    // ----------------------------
+    // 7. AI Category Autocomplete Suggestion
+    // ----------------------------
+    const descInputs = [
+        document.querySelector('#addTransactionModal #description'),
+        document.querySelector('.card #description')
+    ];
+    
+    descInputs.forEach(input => {
+        if (!input) return;
+        
+        let debounceTimer;
+        input.addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            const val = input.value.trim();
+            if (val.length < 3) return;
+            
+            debounceTimer = setTimeout(() => {
+                fetch(`/api/predict-category?description=${encodeURIComponent(val)}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.category) {
+                            const form = input.closest('form');
+                            if (form) {
+                                const catSelect = form.querySelector('#category');
+                                if (catSelect) {
+                                    catSelect.value = data.category;
+                                }
+                            }
+                        }
+                    })
+                    .catch(e => console.error("Error fetching predicted category:", e));
+            }, 500);
+        });
+    });
+
+    // ----------------------------
+    // 8. AI Multimodal Receipt Vision Scanners
+    // ----------------------------
+    const setupReceiptScanner = (btnId, statusId, fileInputId) => {
+        const btn = document.getElementById(btnId);
+        const status = document.getElementById(statusId);
+        const form = btn ? btn.closest('form') : null;
+        
+        if (btn && status && form) {
+            btn.addEventListener('click', () => {
+                const fileInput = form.querySelector(`#${fileInputId}`);
+                if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+                    alert("Please choose a receipt image file to scan first!");
+                    return;
+                }
+                
+                status.classList.remove('d-none');
+                btn.disabled = true;
+                
+                const formData = new FormData();
+                formData.append('receipt', fileInput.files[0]);
+                
+                fetch('/api/scan-receipt', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(r => {
+                    if (!r.ok) {
+                        return r.json().then(err => { throw new Error(err.error || 'Server error') });
+                    }
+                    return r.json();
+                })
+                .then(data => {
+                    status.classList.add('d-none');
+                    btn.disabled = false;
+                    
+                    if (data.amount) form.querySelector('#amount').value = data.amount;
+                    if (data.category) form.querySelector('#category').value = data.category;
+                    if (data.description) form.querySelector('#description').value = data.description;
+                    if (data.date) form.querySelector('#date').value = data.date;
+                    
+                    alert("🎉 Receipt scanned and form populated successfully!");
+                })
+                .catch(err => {
+                    status.classList.add('d-none');
+                    btn.disabled = false;
+                    alert("⚠️ AI Scanner Error: " + err.message);
+                });
+            });
+        }
+    };
+
+    setupReceiptScanner('btn-scan-receipt-modal', 'ai-scan-status-modal', 'receipt');
+    setupReceiptScanner('btn-scan-receipt-page', 'ai-scan-status-page', 'receipt');
 
     // Run charts init and background animation
     initBackgroundAnimation();
